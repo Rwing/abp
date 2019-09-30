@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Acme.BookStore.MultiTenancy;
+using Microsoft.Extensions.Hosting;
+using Microsoft.OpenApi.Models;
 using Volo.Abp.AspNetCore.Mvc.UI.Theme.Basic;
 using Swashbuckle.AspNetCore.Swagger;
 using Volo.Abp;
@@ -47,7 +49,7 @@ namespace Acme.BookStore
             ConfigureAuthentication(context, configuration);
             ConfigureSwagger(context);
             ConfigureLocalization();
-            ConfigureVirtualFileSystem(context);
+            ConfigureVirtualFileSystem(hostingEnvironment);
             ConfigureCors(context, configuration);
         }
 
@@ -59,10 +61,8 @@ namespace Acme.BookStore
             });
         }
 
-        private void ConfigureVirtualFileSystem(ServiceConfigurationContext context)
+        private void ConfigureVirtualFileSystem(IWebHostEnvironment hostingEnvironment)
         {
-            var hostingEnvironment = context.Services.GetHostingEnvironment();
-
             if (hostingEnvironment.IsDevelopment())
             {
                 Configure<VirtualFileSystemOptions>(options =>
@@ -103,7 +103,7 @@ namespace Acme.BookStore
             context.Services.AddSwaggerGen(
                 options =>
                 {
-                    options.SwaggerDoc("v1", new Info {Title = "BookStore API", Version = "v1"});
+                    options.SwaggerDoc("v1", new OpenApiInfo() { Title = "BookStore API", Version = "v1" });
                     options.DocInclusionPredicate((docName, description) => true);
                 });
         }
@@ -148,7 +148,11 @@ namespace Acme.BookStore
             app.UseCors(DefaultCorsPolicyName);
 
             app.UseVirtualFiles();
+
+            app.UseRouting();
+
             app.UseAuthentication();
+            app.UseAuthorization();
             app.UseJwtTokenMiddleware();
 
             if (MultiTenancyConsts.IsEnabled)
